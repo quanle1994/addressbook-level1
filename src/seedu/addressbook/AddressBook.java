@@ -105,6 +105,16 @@ public class AddressBook {
                                                       + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
     private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
 
+    private static final String COMMAND_EDIT_WORD = "edit";
+    private static final String COMMAND_EDIT_DESC = "Edit a person's particular in the address book";
+    private static final String COMMAND_EDIT_PARAMETERS = "NAME "
+            + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
+            + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
+    private static final String COMMAND_EDIT_EXAMPLE = "User Input: " + COMMAND_EDIT_WORD;
+    private static final String COMMAND_EDIT_EXAMPLE_2 = "System Output: 1. John Doe p/98765432 e/johnd@gmail.com";
+    private static final String COMMAND_EDIT_EXAMPLE_3 = "System Output: 2. John Doe 2 p/98777777 e/johnd_2@gmail.com";
+    private static final String COMMAND_EDIT_EXAMPLE_4 = "User Input: 1 John Douglas p/123456789 e/johnd@hotmail.com";
+
     private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
                                         + "keywords (case-sensitive) and displays them as a list with index numbers.";
@@ -211,7 +221,7 @@ public class AddressBook {
         processProgramArgs(args);
         loadDataFromStorage();
         while (true) {
-            String userCommand = getUserInput();
+            String userCommand = getUserInput(false);
             echoUserCommand(userCommand);
             String feedback = executeCommand(userCommand);
             showResultToUser(feedback);
@@ -383,6 +393,13 @@ public class AddressBook {
             return getUsageInfoForAllCommands();
         case COMMAND_EXIT_WORD:
             executeExitProgramRequest();
+        case COMMAND_EDIT_WORD:
+            showResultToUser(executeListAllPersonsInAddressBook());
+            String userCommand = getUserInput(true);
+            String[] commandTypeAndParams_2 = splitCommandWordAndArgs(userCommand);
+            String selectedPerson = commandTypeAndParams_2[0];
+            String editDetails = commandTypeAndParams_2[1];
+            return executeEditPerson(selectedPerson,editDetails);
         default:
             return getMessageForInvalidCommandInput(commandType, getUsageInfoForAllCommands());
         }
@@ -507,9 +524,26 @@ public class AddressBook {
         if (!isDisplayIndexValidForLastPersonListingView(targetVisibleIndex)) {
             return MESSAGE_INVALID_PERSON_DISPLAYED_INDEX;
         }
+        return deletePersonWithReturnMessage(targetVisibleIndex);
+    }
+
+    private static String deletePersonWithReturnMessage(int targetVisibleIndex) {
         final String[] targetInModel = getPersonByLastVisibleIndex(targetVisibleIndex);
         return deletePersonFromAddressBook(targetInModel) ? getMessageForSuccessfulDelete(targetInModel) // success
-                                                          : MESSAGE_PERSON_NOT_IN_ADDRESSBOOK; // not found
+                                                          : MESSAGE_PERSON_NOT_IN_ADDRESSBOOK;
+    }
+
+    /**
+     * Edit person by finding a list of people based on input name, then asking user to select one of them, then editing based on user's input information.
+     *
+     * @param selectPerson index of the person
+     * @param editDetails  details to be edited
+     * @return feedback display message for the operation result
+     */
+    private static String executeEditPerson(String selectPerson, String editDetails) {
+        deletePersonWithReturnMessage(Integer.parseInt(selectPerson));
+        executeAddPerson(editDetails);
+        return "Edited";
     }
 
     /**
@@ -598,8 +632,11 @@ public class AddressBook {
      *
      * @return full line entered by the user
      */
-    private static String getUserInput() {
-        System.out.print(LINE_PREFIX + "Enter command: ");
+    private static String getUserInput(boolean isEdit) {
+        if (isEdit)
+            System.out.print(LINE_PREFIX + "Select person and enter the details to be edited: ");
+        else
+            System.out.print(LINE_PREFIX + "Enter command: ");
         String inputLine = SCANNER.nextLine();
         // silently consume all blank and comment lines
         while (inputLine.trim().isEmpty() || inputLine.trim().charAt(0) == INPUT_COMMENT_MARKER) {
@@ -1087,6 +1124,7 @@ public class AddressBook {
                 + getUsageInfoForViewCommand() + LS
                 + getUsageInfoForDeleteCommand() + LS
                 + getUsageInfoForClearCommand() + LS
+                + getUsageInfoForEditCommand() + LS
                 + getUsageInfoForExitCommand() + LS
                 + getUsageInfoForHelpCommand();
     }
@@ -1096,6 +1134,16 @@ public class AddressBook {
         return String.format(MESSAGE_COMMAND_HELP, COMMAND_ADD_WORD, COMMAND_ADD_DESC) + LS
                 + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_ADD_PARAMETERS) + LS
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_ADD_EXAMPLE) + LS;
+    }
+
+    /** Returns the string for showing 'edit' command usage instruction */
+    private static String getUsageInfoForEditCommand() {
+        return String.format(MESSAGE_COMMAND_HELP, COMMAND_EDIT_WORD, COMMAND_EDIT_DESC) + LS
+                + String.format(MESSAGE_COMMAND_HELP_PARAMETERS, COMMAND_EDIT_PARAMETERS) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EDIT_EXAMPLE) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EDIT_EXAMPLE_2) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EDIT_EXAMPLE_3) + LS
+                + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EDIT_EXAMPLE_4) + LS;
     }
 
     /** Returns the string for showing 'find' command usage instruction */
@@ -1135,7 +1183,6 @@ public class AddressBook {
         return String.format(MESSAGE_COMMAND_HELP, COMMAND_EXIT_WORD, COMMAND_EXIT_DESC)
                 + String.format(MESSAGE_COMMAND_HELP_EXAMPLE, COMMAND_EXIT_EXAMPLE);
     }
-
 
     /*
      * ============================
